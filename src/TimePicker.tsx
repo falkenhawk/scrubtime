@@ -15,6 +15,8 @@ export interface TimePickerProps {
   sliderStep?: number;
   /** Drag sensitivity - pixels per unit change (default: 3) */
   dragSensitivity?: number;
+  /** Number of equal parts to divide the 24h range into (default: 4 = labels at 0,6,12,18,24) */
+  divisions?: number;
 }
 
 interface DraggableValueProps {
@@ -115,7 +117,9 @@ export function TimePicker({
   disabled = false,
   sliderStep = 15,
   dragSensitivity = 3,
+  divisions = 4,
 }: TimePickerProps) {
+  const labelCount = divisions + 1;
   const { hours, minutes } = parseTime(value);
   const totalMinutes = hours * 60 + minutes;
 
@@ -182,11 +186,15 @@ export function TimePicker({
             aria-label="Time slider"
           />
           <div className="scrubtime-slider-labels">
-            <span>0</span>
-            <span>6</span>
-            <span>12</span>
-            <span>18</span>
-            <span>24</span>
+            {Array.from({ length: labelCount }, (_, i) => {
+              const hour = Math.round((24 / divisions) * i);
+              const percent = (i / divisions) * 100;
+              return (
+                <span key={i} style={{ left: `${percent}%` }}>
+                  {hour}
+                </span>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -57,6 +57,7 @@ function App() {
 | `disabled` | `boolean` | `false` | Disable the picker |
 | `sliderStep` | `number` | `15` | Slider step in minutes |
 | `dragSensitivity` | `number` | `3` | Pixels per unit when dragging |
+| `divisions` | `number` | `4` | Number of equal parts to divide the 24h range (4 = labels at 0, 6, 12, 18, 24) |
 
 ## Interaction
 
