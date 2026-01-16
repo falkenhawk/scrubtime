@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 
 export interface TimePickerProps {
   /** Current time value in "H:mm" or "HH:mm" format */
@@ -22,21 +22,33 @@ export interface TimePickerProps {
 interface DraggableValueProps {
   value: number;
   onDelta: (delta: number) => void;
+  onSet: (value: number) => void;
   formatValue?: (v: number) => string;
   className?: string;
   disabled?: boolean;
   sensitivity: number;
+  min: number;
+  max: number;
 }
+
+const DRAG_THRESHOLD = 3;
 
 function DraggableValue({
   value,
   onDelta,
+  onSet,
   formatValue,
   className,
   disabled,
   sensitivity,
+  min,
+  max,
 }: DraggableValueProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
   const isDragging = useRef(false);
+  const hasDragged = useRef(false);
+  const startX = useRef(0);
   const lastX = useRef(0);
   const accumulatedDelta = useRef(0);
   const onDeltaRef = useRef(onDelta);
@@ -44,9 +56,11 @@ function DraggableValue({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (disabled) return;
+      if (disabled || isEditing) return;
 
       isDragging.current = true;
+      hasDragged.current = false;
+      startX.current = e.clientX;
       lastX.current = e.clientX;
       accumulatedDelta.current = 0;
       document.body.style.cursor = 'ew-resize';
@@ -54,6 +68,12 @@ function DraggableValue({
 
       const handleMouseMove = (e: MouseEvent) => {
         if (!isDragging.current) return;
+
+        const totalDeltaX = Math.abs(e.clientX - startX.current);
+        if (totalDeltaX > DRAG_THRESHOLD) {
+          hasDragged.current = true;
+        }
+
         const deltaX = e.clientX - lastX.current;
         const deltaValue = deltaX / sensitivity;
         accumulatedDelta.current += deltaValue;
@@ -77,14 +97,69 @@ function DraggableValue({
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     },
-    [disabled, sensitivity]
+    [disabled, sensitivity, isEditing]
   );
 
   const displayValue = formatValue ? formatValue(value) : String(value);
 
+  const handleClick = useCallback(() => {
+    if (disabled || hasDragged.current) return;
+    setEditValue(displayValue);
+    setIsEditing(true);
+  }, [disabled, displayValue]);
+
+  const handleDivKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (disabled) return;
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        setEditValue(e.key);
+        setIsEditing(true);
+      }
+    },
+    [disabled]
+  );
+
+  const commitEdit = useCallback(() => {
+    const parsed = parseInt(editValue, 10);
+    if (!isNaN(parsed)) {
+      const clamped = Math.max(min, Math.min(max, parsed));
+      onSet(clamped);
+    }
+    setIsEditing(false);
+  }, [editValue, min, max, onSet]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        commitEdit();
+      } else if (e.key === 'Escape') {
+        setIsEditing(false);
+      }
+    },
+    [commitEdit]
+  );
+
+  if (isEditing) {
+    return (
+      <input
+        type="text"
+        inputMode="numeric"
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onBlur={commitEdit}
+        onKeyDown={handleKeyDown}
+        className={`scrubtime-value scrubtime-value--editing ${className || ''}`}
+        autoFocus
+      />
+    );
+  }
+
   return (
     <div
       onMouseDown={handleMouseDown}
+      onClick={handleClick}
+      onKeyDown={handleDivKeyDown}
       className={`scrubtime-value ${className || ''} ${disabled ? 'scrubtime-value--disabled' : ''}`}
       role="spinbutton"
       aria-valuenow={value}
@@ -139,6 +214,13 @@ export function TimePicker({
     [hours, minutes, onChange]
   );
 
+  const handleHoursSet = useCallback(
+    (newHours: number) => {
+      onChange(formatTime(newHours, minutes));
+    },
+    [minutes, onChange]
+  );
+
   const handleMinutesDelta = useCallback(
     (delta: number) => {
       const newTotalMinutes = clampTotalMinutes(totalMinutes + delta);
@@ -147,6 +229,13 @@ export function TimePicker({
       onChange(formatTime(h, m));
     },
     [totalMinutes, onChange]
+  );
+
+  const handleMinutesSet = useCallback(
+    (newMinutes: number) => {
+      onChange(formatTime(hours, newMinutes));
+    },
+    [hours, onChange]
   );
 
   return (
@@ -158,17 +247,23 @@ export function TimePicker({
           <DraggableValue
             value={hours}
             onDelta={handleHoursDelta}
+            onSet={handleHoursSet}
             disabled={disabled}
             sensitivity={dragSensitivity}
+            min={0}
+            max={23}
             className="scrubtime-hours"
           />
           <span className="scrubtime-separator">:</span>
           <DraggableValue
             value={minutes}
             onDelta={handleMinutesDelta}
+            onSet={handleMinutesSet}
             formatValue={(v) => String(v).padStart(2, '0')}
             disabled={disabled}
             sensitivity={dragSensitivity}
+            min={0}
+            max={59}
             className="scrubtime-minutes"
           />
         </div>
@@ -182,6 +277,7 @@ export function TimePicker({
             value={totalMinutes}
             onChange={handleSliderChange}
             disabled={disabled}
+            tabIndex={-1}
             className="scrubtime-slider"
             aria-label="Time slider"
           />
