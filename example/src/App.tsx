@@ -15,7 +15,7 @@ export default function App() {
       <header className="header">
         <div>
           <h1>scrubtime</h1>
-          <p className="subtitle">A React time picker with draggable scrubber and slider</p>
+          <p className="subtitle">Minimal clicks, maximum control.</p>
         </div>
         <a href="https://github.com/falkenhawk/scrubtime" className="github-link" target="_blank" rel="noopener noreferrer" aria-label="View on GitHub">
           <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
