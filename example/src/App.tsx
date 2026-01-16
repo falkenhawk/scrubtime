@@ -7,6 +7,8 @@ export default function App() {
   const [time1, setTime1] = useState('14:30');
   const [time2, setTime2] = useState('9:00');
   const [time3, setTime3] = useState('20:15');
+  const [time4, setTime4] = useState('8:00');
+  const [time5, setTime5] = useState('17:45');
 
   return (
     <div className="app">
@@ -15,7 +17,7 @@ export default function App() {
 
       <div className="demos">
         <div className="demo-card">
-          <h2>Default (4 divisions)</h2>
+          <h2>Default</h2>
           <TimePicker
             value={time1}
             onChange={setTime1}
@@ -36,14 +38,36 @@ export default function App() {
         </div>
 
         <div className="demo-card">
-          <h2>3 divisions</h2>
+          <h2>5-min steps</h2>
           <TimePicker
             value={time3}
             onChange={setTime3}
-            label="Departure"
-            divisions={3}
+            label="Precise time"
+            sliderStep={5}
           />
           <p className="value">Value: {time3}</p>
+        </div>
+
+        <div className="demo-card">
+          <h2>30-min steps</h2>
+          <TimePicker
+            value={time4}
+            onChange={setTime4}
+            label="Quick select"
+            sliderStep={30}
+          />
+          <p className="value">Value: {time4}</p>
+        </div>
+
+        <div className="demo-card">
+          <h2>High sensitivity</h2>
+          <TimePicker
+            value={time5}
+            onChange={setTime5}
+            label="Fine control"
+            dragSensitivity={6}
+          />
+          <p className="value">Value: {time5}</p>
         </div>
 
         <div className="demo-card">
