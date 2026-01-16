@@ -2,6 +2,8 @@
 
 A React time picker with draggable scrubber and slider — minimal clicks, maximum control.
 
+**[Live Demo](https://falkenhawk.github.io/scrubtime/)**
+
 ![npm](https://img.shields.io/npm/v/scrubtime)
 ![npm bundle size](https://img.shields.io/bundlephobia/minzip/scrubtime)
 ![license](https://img.shields.io/npm/l/scrubtime)
