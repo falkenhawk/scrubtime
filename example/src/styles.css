@@ -17,6 +17,13 @@ body {
   padding: 3rem 1.5rem;
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 3rem;
+}
+
 h1 {
   font-size: 2.5rem;
   font-weight: 700;
@@ -25,7 +32,15 @@ h1 {
 
 .subtitle {
   color: #71717a;
-  margin-bottom: 3rem;
+}
+
+.github-link {
+  color: #71717a;
+  transition: color 0.15s ease;
+}
+
+.github-link:hover {
+  color: #fafafa;
 }
 
 .demos {
