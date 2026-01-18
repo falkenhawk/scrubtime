@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0] - 2026-01-18
+
+### Added
+- Magnifier popup above digit fields during touch drag (shows current value)
+- Long press activation (300ms) - starts value changes immediately without drag threshold
+- Distance-based activation shows magnifier first, requires more movement before first change
+
+### Changed
+- Vertical swipe direction: down = increase, up = decrease (natural scroll)
+- Minutes drag sensitivity now matches base (slower, more precise)
+- Magnifier styled smaller and more subtle
+
+### Fixed
+- Prevent rapid-fire value changes on drag activation
+
 ## [0.2.0] - 2026-01-18
 
 ### Added
