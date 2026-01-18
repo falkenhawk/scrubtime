@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.1] - 2026-01-18
+
+### Fixed
+- Keyboard input after tab-focus no longer auto-selects, allowing proper digit entry (e.g., typing "21" now works instead of replacing first digit)
+
 ## [0.3.0] - 2026-01-18
 
 ### Added

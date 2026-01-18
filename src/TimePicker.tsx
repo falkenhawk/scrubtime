@@ -47,6 +47,7 @@ function DraggableValue({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [showMagnifier, setShowMagnifier] = useState(false);
+  const enteredViaKeyboard = useRef(false);
   const isDragging = useRef(false);
   const hasDragged = useRef(false);
   const isLongPress = useRef(false);
@@ -216,6 +217,7 @@ function DraggableValue({
 
   const handleClick = useCallback(() => {
     if (disabled || hasDragged.current) return;
+    enteredViaKeyboard.current = false;
     setEditValue(displayValue);
     setIsEditing(true);
   }, [disabled, displayValue]);
@@ -225,6 +227,7 @@ function DraggableValue({
       if (disabled) return;
       if (/^[0-9]$/.test(e.key)) {
         e.preventDefault();
+        enteredViaKeyboard.current = true;
         setEditValue(e.key);
         setIsEditing(true);
       }
@@ -252,6 +255,12 @@ function DraggableValue({
     [commitEdit]
   );
 
+  const handleInputFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    if (!enteredViaKeyboard.current) {
+      e.target.select();
+    }
+  }, []);
+
   if (isEditing) {
     return (
       <input
@@ -259,7 +268,7 @@ function DraggableValue({
         inputMode="numeric"
         value={editValue}
         onChange={(e) => setEditValue(e.target.value.replace(/\D/g, '').slice(-2))}
-        onFocus={(e) => e.target.select()}
+        onFocus={handleInputFocus}
         onBlur={commitEdit}
         onKeyDown={handleKeyDown}
         className={`scrubtime-value scrubtime-value--editing ${className || ''}`}
