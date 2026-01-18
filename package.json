@@ -1,6 +1,6 @@
 {
   "name": "scrubtime",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A React time picker with draggable scrubber and slider - minimal clicks, maximum control",
   "author": "falkenhawk",
   "license": "MIT",

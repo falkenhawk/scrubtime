@@ -49,7 +49,9 @@ function DraggableValue({
   const isDragging = useRef(false);
   const hasDragged = useRef(false);
   const startX = useRef(0);
+  const startY = useRef(0);
   const lastX = useRef(0);
+  const lastY = useRef(0);
   const accumulatedDelta = useRef(0);
   const onDeltaRef = useRef(onDelta);
   onDeltaRef.current = onDelta;
@@ -100,6 +102,58 @@ function DraggableValue({
     [disabled, sensitivity, isEditing]
   );
 
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (disabled || isEditing) return;
+
+      const touch = e.touches[0];
+      isDragging.current = true;
+      hasDragged.current = false;
+      startX.current = touch.clientX;
+      startY.current = touch.clientY;
+      lastX.current = touch.clientX;
+      lastY.current = touch.clientY;
+      accumulatedDelta.current = 0;
+
+      const handleTouchMove = (e: TouchEvent) => {
+        if (!isDragging.current) return;
+
+        const touch = e.touches[0];
+        const totalDeltaX = Math.abs(touch.clientX - startX.current);
+        const totalDeltaY = Math.abs(touch.clientY - startY.current);
+        if (totalDeltaX > DRAG_THRESHOLD || totalDeltaY > DRAG_THRESHOLD) {
+          hasDragged.current = true;
+          e.preventDefault(); // Prevent scrolling once dragging starts
+        }
+
+        const deltaX = touch.clientX - lastX.current;
+        const deltaY = touch.clientY - lastY.current;
+        // Horizontal: right = increase, left = decrease
+        // Vertical: up = increase, down = decrease
+        const deltaValue = (deltaX - deltaY) / sensitivity;
+        accumulatedDelta.current += deltaValue;
+
+        const wholeDelta = Math.trunc(accumulatedDelta.current);
+        if (wholeDelta !== 0) {
+          accumulatedDelta.current -= wholeDelta;
+          onDeltaRef.current(wholeDelta);
+        }
+        lastX.current = touch.clientX;
+        lastY.current = touch.clientY;
+      };
+
+      const handleTouchEnd = () => {
+        isDragging.current = false;
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
+
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+    },
+    [disabled, sensitivity, isEditing]
+  );
+
   const displayValue = formatValue ? formatValue(value) : String(value);
 
   const handleClick = useCallback(() => {
@@ -146,7 +200,8 @@ function DraggableValue({
         type="text"
         inputMode="numeric"
         value={editValue}
-        onChange={(e) => setEditValue(e.target.value)}
+        onChange={(e) => setEditValue(e.target.value.replace(/\D/g, '').slice(-2))}
+        onFocus={(e) => e.target.select()}
         onBlur={commitEdit}
         onKeyDown={handleKeyDown}
         className={`scrubtime-value scrubtime-value--editing ${className || ''}`}
@@ -158,6 +213,7 @@ function DraggableValue({
   return (
     <div
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       onClick={handleClick}
       onKeyDown={handleDivKeyDown}
       className={`scrubtime-value ${className || ''} ${disabled ? 'scrubtime-value--disabled' : ''}`}
@@ -249,7 +305,7 @@ export function TimePicker({
             onDelta={handleHoursDelta}
             onSet={handleHoursSet}
             disabled={disabled}
-            sensitivity={dragSensitivity}
+            sensitivity={dragSensitivity * 2}
             min={0}
             max={23}
             className="scrubtime-hours"
@@ -261,7 +317,7 @@ export function TimePicker({
             onSet={handleMinutesSet}
             formatValue={(v) => String(v).padStart(2, '0')}
             disabled={disabled}
-            sensitivity={dragSensitivity}
+            sensitivity={dragSensitivity / 2}
             min={0}
             max={59}
             className="scrubtime-minutes"
