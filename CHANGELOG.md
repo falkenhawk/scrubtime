@@ -14,6 +14,7 @@
 
 ### Fixed
 - Prevent rapid-fire value changes on drag activation
+- Slider labels no longer block thumb touch interaction
 
 ## [0.2.0] - 2026-01-18
 

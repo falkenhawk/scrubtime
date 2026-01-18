@@ -149,6 +149,9 @@
   display: flex;
   flex-direction: column;
   --thumb-width: 1.25rem;
+  padding: 0.75rem 0;
+  margin: -0.75rem 0;
+  user-select: none;
 }
 
 .scrubtime-slider {
@@ -161,6 +164,7 @@
   cursor: pointer;
   margin: 0;
   touch-action: pan-x;
+  user-select: none;
 }
 
 .scrubtime-slider::-webkit-slider-thumb {
@@ -215,6 +219,8 @@
   /* Inset to match thumb travel range */
   margin-left: calc(var(--thumb-width) / 2);
   margin-right: calc(var(--thumb-width) / 2 + 1px);
+  user-select: none;
+  pointer-events: none;
 }
 
 .scrubtime-slider-labels span {
