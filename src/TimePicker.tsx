@@ -46,8 +46,12 @@ function DraggableValue({
 }: DraggableValueProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
+  const [showMagnifier, setShowMagnifier] = useState(false);
   const isDragging = useRef(false);
   const hasDragged = useRef(false);
+  const isLongPress = useRef(false);
+  const needsBuffer = useRef(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startX = useRef(0);
   const startY = useRef(0);
   const lastX = useRef(0);
@@ -109,34 +113,82 @@ function DraggableValue({
       const touch = e.touches[0];
       isDragging.current = true;
       hasDragged.current = false;
+      isLongPress.current = false;
       startX.current = touch.clientX;
       startY.current = touch.clientY;
       lastX.current = touch.clientX;
       lastY.current = touch.clientY;
       accumulatedDelta.current = 0;
 
+      // Long press timer - activates after 300ms, no threshold needed after
+      longPressTimer.current = setTimeout(() => {
+        isLongPress.current = true;
+        setShowMagnifier(true);
+      }, 300);
+
       const handleTouchMove = (e: TouchEvent) => {
         if (!isDragging.current) return;
 
         const touch = e.touches[0];
-        const totalDeltaX = Math.abs(touch.clientX - startX.current);
-        const totalDeltaY = Math.abs(touch.clientY - startY.current);
-        if (totalDeltaX > DRAG_THRESHOLD || totalDeltaY > DRAG_THRESHOLD) {
-          hasDragged.current = true;
-          e.preventDefault(); // Prevent scrolling once dragging starts
+
+        // Before drag is activated, check threshold or long press
+        if (!hasDragged.current) {
+          const totalDeltaX = touch.clientX - startX.current;
+          const totalDeltaY = touch.clientY - startY.current;
+
+          // Long press activated - start immediately with +1/-1 on any movement
+          if (isLongPress.current) {
+            const deltaX = touch.clientX - lastX.current;
+            const deltaY = touch.clientY - lastY.current;
+            if (Math.abs(deltaX) > 0 || Math.abs(deltaY) > 0) {
+              hasDragged.current = true;
+              e.preventDefault();
+              const direction = (deltaX + deltaY) > 0 ? 1 : -1;
+              onDeltaRef.current(direction);
+              lastX.current = touch.clientX;
+              lastY.current = touch.clientY;
+              // Add buffer to prevent rapid-fire changes after activation
+              accumulatedDelta.current = -direction * 0.8;
+              return;
+            }
+          }
+
+          if (Math.abs(totalDeltaX) > DRAG_THRESHOLD || Math.abs(totalDeltaY) > DRAG_THRESHOLD) {
+            // Cancel long press timer since drag started
+            if (longPressTimer.current) {
+              clearTimeout(longPressTimer.current);
+              longPressTimer.current = null;
+            }
+            hasDragged.current = true;
+            needsBuffer.current = true;
+            setShowMagnifier(true);
+            e.preventDefault();
+            // Show magnifier first, don't change value yet - further dragging will mutate
+            lastX.current = touch.clientX;
+            lastY.current = touch.clientY;
+            accumulatedDelta.current = 0;
+          }
+          // Always update lastX/lastY so long press activation has fresh position
+          lastX.current = touch.clientX;
+          lastY.current = touch.clientY;
+          return;
         }
 
+        e.preventDefault();
         const deltaX = touch.clientX - lastX.current;
         const deltaY = touch.clientY - lastY.current;
         // Horizontal: right = increase, left = decrease
         // Vertical: up = increase, down = decrease
-        const deltaValue = (deltaX - deltaY) / sensitivity;
+        const deltaValue = (deltaX + deltaY) / sensitivity;
         accumulatedDelta.current += deltaValue;
 
-        const wholeDelta = Math.trunc(accumulatedDelta.current);
-        if (wholeDelta !== 0) {
+        // Require more movement for first change after distance activation
+        const threshold = needsBuffer.current ? 2 : 1;
+        if (Math.abs(accumulatedDelta.current) >= threshold) {
+          const wholeDelta = Math.trunc(accumulatedDelta.current);
           accumulatedDelta.current -= wholeDelta;
           onDeltaRef.current(wholeDelta);
+          needsBuffer.current = false;
         }
         lastX.current = touch.clientX;
         lastY.current = touch.clientY;
@@ -144,6 +196,12 @@ function DraggableValue({
 
       const handleTouchEnd = () => {
         isDragging.current = false;
+        needsBuffer.current = false;
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+        setShowMagnifier(false);
         document.removeEventListener('touchmove', handleTouchMove);
         document.removeEventListener('touchend', handleTouchEnd);
       };
@@ -211,18 +269,25 @@ function DraggableValue({
   }
 
   return (
-    <div
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-      onClick={handleClick}
-      onKeyDown={handleDivKeyDown}
-      className={`scrubtime-value ${className || ''} ${disabled ? 'scrubtime-value--disabled' : ''}`}
-      role="spinbutton"
-      aria-valuenow={value}
-      aria-disabled={disabled}
-      tabIndex={disabled ? -1 : 0}
-    >
-      {displayValue}
+    <div className="scrubtime-value-wrapper">
+      {showMagnifier && (
+        <div className="scrubtime-magnifier" aria-hidden="true">
+          {displayValue}
+        </div>
+      )}
+      <div
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        onClick={handleClick}
+        onKeyDown={handleDivKeyDown}
+        className={`scrubtime-value ${className || ''} ${disabled ? 'scrubtime-value--disabled' : ''}`}
+        role="spinbutton"
+        aria-valuenow={value}
+        aria-disabled={disabled}
+        tabIndex={disabled ? -1 : 0}
+      >
+        {displayValue}
+      </div>
     </div>
   );
 }
@@ -317,7 +382,7 @@ export function TimePicker({
             onSet={handleMinutesSet}
             formatValue={(v) => String(v).padStart(2, '0')}
             disabled={disabled}
-            sensitivity={dragSensitivity / 2}
+            sensitivity={dragSensitivity}
             min={0}
             max={59}
             className="scrubtime-minutes"
