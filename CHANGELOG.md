@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.2] - 2026-01-19
+
+### Changed
+- Extended slider activation area to cover labels below (easier touch/click targeting)
+
+### Fixed
+- Prevent text selection inside time picker container
+- Use default cursor instead of text cursor inside container
+- Show text cursor when digit field is in edit mode
+
 ## [0.3.1] - 2026-01-18
 
 ### Fixed
